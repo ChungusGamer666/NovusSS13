@@ -26,7 +26,7 @@
 /datum/wound/pierce/wound_injury(datum/wound/old_wound = null, attack_direction = null)
 	set_blood_flow(initial_flow)
 	if(!no_bleeding && attack_direction && victim.blood_volume > BLOOD_VOLUME_OKAY)
-		victim.spray_blood(attack_direction, severity)
+		victim.spray_blood(severity, dir2angle(attack_direction))
 
 /datum/wound/pierce/receive_damage(wounding_type, wounding_dmg, wound_bonus)
 	if(victim.stat == DEAD || (wounding_dmg < WOUND_MINIMUM_DAMAGE) || no_bleeding || (victim.blood_volume <= 0) || !prob(internal_bleeding_chance + wounding_dmg))
@@ -48,13 +48,13 @@
 								span_danger("A small stream of blood splurts from the hole in your [limb.plaintext_zone]!"), \
 								vision_distance = COMBAT_MESSAGE_RANGE)
 			victim.bleed(blood_bled, no_visual = TRUE)
-			victim.spray_blood(victim.dir, splatter_strength = 1)
+			victim.spray_blood(1, dir2angle(victim.dir), -15, 15)
 		if(20 to INFINITY)
 			victim.visible_message(span_danger("A spray of blood streams from the gash in [victim]'s [limb.plaintext_zone]!"), \
 								span_danger("<b>A spray of blood streams from the gash in your [limb.plaintext_zone]!</b>"), \
 								vision_distance = COMBAT_MESSAGE_RANGE)
 			victim.bleed(blood_bled, no_visual = TRUE)
-			victim.spray_blood(victim.dir, splatter_strength = 2)
+			victim.spray_blood(2, dir2angle(victim.dir), -15, 15)
 
 /datum/wound/pierce/get_bleed_rate_of_change()
 	//basically if a species doesn't bleed, the wound is stagnant and will not heal on it's own (nor get worse)

@@ -356,16 +356,68 @@
  * The strength of the splatter in the second argument determines how much it can dirty and how far it can go
  *
  * Arguments:
- * * splatter_direction: Which direction the blood is flying
- * * splatter_strength: How many tiles it can go, and how many items it can pass over and dirty
+ * * splatter_strength: How many tiles it can go over
+ * * angle: Which angle the blood is flying at
+ * * min_deviation: The minimum deviation from the angle
+ * * max_deviation: The maximum deviation from the angle
  */
-/mob/living/proc/spray_blood(splatter_direction, splatter_strength = 3)
+/mob/living/proc/spray_blood(splatter_strength = 3, angle = rand(0, 360), min_deviation = -30, max_deviation = 30)
 	if(!isturf(loc) || !blood_volume || (get_blood_id() != /datum/reagent/blood) || HAS_TRAIT(src, TRAIT_NOBLOOD))
 		return
-	var/obj/effect/decal/cleanable/blood/hitsplatter/our_splatter = new(loc)
-	our_splatter.add_blood_DNA(GET_ATOM_BLOOD_DNA(src))
-	var/turf/targ = get_ranged_target_turf(src, splatter_direction, splatter_strength)
-	our_splatter.fly_towards(targ, splatter_strength)
+	angle = SIMPLIFY_DEGREES(angle + rand(min_deviation, max_deviation))
+	var/list/blood_dna = GET_ATOM_BLOOD_DNA(src)
+	var/obj/projectile/blood/our_splatter = new(loc, blood_dna)
+	our_splatter.do_squirt(angle, splatter_strength)
+
+	var/obj/dummy = new(loc)
+	dummy.pass_flags |= PASSTABLE
+	var/turf/previous_step = loc
+	var/sine = sin(angle)
+	var/cosine = cos(angle)
+	var/animation_delay = 0
+	for(var/distance = world.icon_size;distance < (splatter_strength+1) * world.icon_size;distance += world.icon_size)
+		var/px = round(world.icon_size * loc.x + distance * sine)
+		var/py = round(world.icon_size * loc.y + distance * cosine)
+		var/turf_x = round(dx/world.icon_size)
+		var/turf_y = round(dy/world.icon_size)
+		var/turf/next_step = locate(turf_x, turf_y, loc.z)
+		if(next_step.density)
+			qdel(dummy)
+			return FALSE
+		for(var/atom/movable/movable as anything in next_step)
+			if(!movable.CanPass(dummy, get_dir(next_step, previous_step)))
+				qdel(dummy)
+				return FALSE
+		var/splatter_x
+		if(!dx)
+			splatter_x = 0
+		else
+			splatter_x = px % world.icon_size
+		var/splatter_y
+		if(!dy)
+			splatter_y = 0
+		else
+			splatter_y = py % world.icon_size
+		var/obj/effect/decal/cleanable/blood/splatter/stacking/stacker = locate(/obj/effect/decal/cleanable/blood/splatter/stacking) in next_step
+		animation_delay += 2
+		if(!stacker)
+			stacker = new /obj/effect/decal/cleanable/blood/splatter/stacking/squirt(next_step, splatter_x, splatter_y, angle)
+			stacker.update_appearance(UPDATE_ICON)
+			stacker.alpha = 0
+			animate(stacker, time = animation_delay)
+			animate(stacker, alpha = 255, time = 2)
+		else
+			var/obj/effect/decal/cleanable/blood/splatter/stacking/other_splatter = new /obj/effect/decal/cleanable/blood/splatter/stacking/squirt(null, splatter_x, splatter_y, angle)
+			other_splatter.forceMove(next_step)
+			other_splatter.update_appearance(UPDATE_ICON)
+			other_splatter.alpha = 0
+			animate(stacker, time = animation_delay)
+			animate(other_splatter, alpha = stacker.alpha, time = 2)
+			animate(other_splatter, color = stacker.color, time = 2)
+			addtimer(CALLBACK(other_splatter, TYPE_PROC_REF(/obj/effect/decal/cleanable/blood/splatter/stacking, delayed_merge), stacker), animation_delay + 2)
+		stacker.add_blood_DNA(blood_dna)
+		previous_step = next_step
+	qdel(dummy)
 
 /**
  * Helper proc for throwing blood particles around, similar to the spray_blood proc.

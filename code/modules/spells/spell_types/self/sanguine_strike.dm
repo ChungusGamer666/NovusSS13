@@ -71,7 +71,7 @@
 	var/attack_direction = get_dir(user, living_target)
 	if(iscarbon(living_target))
 		var/mob/living/carbon/carbon_target = living_target
-		carbon_target.spray_blood(attack_direction, 3)
+		carbon_target.spray_blood(3, dir2angle(attack_direction))
 	living_target.blood_volume -= 50
 	if(!isliving(user))
 		return

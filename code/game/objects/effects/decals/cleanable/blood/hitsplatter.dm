@@ -5,25 +5,20 @@
 	pass_flags = PASSTABLE | PASSGRILLE
 	/// The turf we just came from, so we can back up when we hit a wall
 	var/turf/prev_loc
-	/// Skip making the final blood splatter when we're done, like if we're not in a turf
-	var/skip = FALSE
 	/// How many tiles/items/people we can paint red
 	var/splatter_strength = 3
-	/// Insurance so that we don't keep moving once we hit a stoppoint
-	var/hit_endpoint = FALSE
+	/// Hitsplatter angle
+	var/angle = 0
 	/// Type of squirt decals we should try to create when moving
-	var/squirt_type = /obj/effect/decal/cleanable/blood/squirt
+	var/squirt_type = /obj/effect/decal/cleanable/blood/splatter/stacking/squirt
 
-/obj/effect/decal/cleanable/blood/hitsplatter/Initialize(mapload, splatter_strength)
+/obj/effect/decal/cleanable/blood/hitsplatter/Initialize(mapload, splatter_strength, angle)
 	. = ..()
 	prev_loc = loc //Just so we are sure prev_loc exists
 	if(splatter_strength)
 		src.splatter_strength = splatter_strength
-
-/obj/effect/decal/cleanable/blood/hitsplatter/Destroy()
-	if(isturf(loc) && !skip)
-		playsound(src, 'sound/effects/wounds/splatter.ogg', 60, TRUE, -1)
-	return ..()
+	if(angle)
+		src.angle = angle
 
 /// Set the splatter up to fly through the air until it rounds out of steam or hits something
 /obj/effect/decal/cleanable/blood/hitsplatter/proc/fly_towards(turf/target_turf, range)
@@ -41,8 +36,6 @@
 	SIGNAL_HANDLER
 	var/list/blood_dna_info = GET_ATOM_BLOOD_DNA(src)
 	for(var/atom/iter_atom in get_turf(src))
-		if(hit_endpoint)
-			return
 		if(splatter_strength <= 0)
 			break
 
@@ -71,15 +64,35 @@
 		qdel(src)
 		return
 
-	if(squirt_type && isturf(loc))
-		var/obj/effect/decal/cleanable/squirt = locate(squirt_type) in loc
-		if(squirt)
-			squirt.add_blood_DNA(blood_dna_info)
+	if(!isturf(loc))
+		return
+
+	var/obj/effect/decal/cleanable/splatter
+	if(!ispath(squirt_type, /obj/effect/decal/cleanable/blood/splatter/stacking))
+		splatter = new squirt_type(loc)
+	else
+		var/obj/effect/decal/cleanable/blood/splatter/stacking/stacker = locate(/obj/effect/decal/cleanable/blood/splatter/stacking) in loc
+		var/angle = prev_loc != loc ? angle2dir(get_dir(prev_loc, loc)) : src.angle
+		if(!stacker)
+			stacker = new squirt_type(loc, angle)
+			stacker.bloodiness = src.bloodiness
+			stacker.update_appearance(UPDATE_ICON)
+			stacker.alpha = 0
+			animate(stacker, alpha = 255, time = 2)
 		else
-			squirt = new squirt_type(loc, get_dir(prev_loc, loc))
-			squirt.add_blood_DNA(blood_dna_info)
-			squirt.alpha = 0
-			animate(squirt, alpha = initial(squirt.alpha), time = 2)
+			var/obj/effect/decal/cleanable/blood/splatter/stacking/other_splatter = new squirt_type(null, angle)
+			other_splatter.forceMove(loc)
+			other_splatter.bloodiness = src.bloodiness
+			other_splatter.update_appearance(UPDATE_ICON)
+			other_splatter.alpha = 0
+			animate(other_splatter, alpha = stacker.alpha, time = 2)
+			animate(other_splatter, color = stacker.color, time = 2)
+			addtimer(CALLBACK(other_splatter, TYPE_PROC_REF(/obj/effect/decal/cleanable/blood/splatter/stacking, delayed_merge), stacker), 2)
+		splatter = stacker
+	var/list/our_blood_dna = GET_ATOM_BLOOD_DNA(src)
+	if(our_blood_dna)
+		splatter.add_blood_DNA(our_blood_dna)
+	qdel(src)
 
 /obj/effect/decal/cleanable/blood/hitsplatter/proc/loop_done(datum/source)
 	SIGNAL_HANDLER
@@ -87,6 +100,7 @@
 		qdel(src)
 
 /obj/effect/decal/cleanable/blood/hitsplatter/Bump(atom/bumped_atom)
+	. = ..()
 	if(!iswallturf(bumped_atom) && !istype(bumped_atom, /obj/structure/window))
 		qdel(src)
 		return
@@ -94,26 +108,22 @@
 	if(istype(bumped_atom, /obj/structure/window))
 		var/obj/structure/window/bumped_window = bumped_atom
 		if(!bumped_window.fulltile)
-			hit_endpoint = TRUE
 			qdel(src)
 			return
 
-	hit_endpoint = TRUE
-	if(istype(bumped_atom, /obj/structure/window))
-		//special window case
-		var/obj/structure/window/window = bumped_atom
-		window.become_bloodied(src)
-		skip = TRUE
-	else if(isturf(prev_loc))
-		abstract_move(bumped_atom)
-		skip = TRUE
+	if(iswallturf(bumped_atom) && isopenturf(loc))
 		//Adjust pixel offset to make splatters appear on the wall
-		var/obj/effect/decal/cleanable/blood/splatter/over_window/final_splatter = new(prev_loc)
+		var/obj/effect/decal/cleanable/blood/splatter/over_window/final_splatter = new(loc)
+		final_splatter.add_blood_DNA(GET_ATOM_BLOOD_DNA(src))
 		var/dir_to_wall = get_dir(src, bumped_atom)
 		final_splatter.pixel_x = (dir_to_wall & EAST ? world.icon_size : (dir_to_wall & WEST ? -world.icon_size : 0))
 		final_splatter.pixel_y = (dir_to_wall & NORTH ? world.icon_size : (dir_to_wall & SOUTH ? -world.icon_size : 0))
 		final_splatter.alpha = 0
 		animate(final_splatter, alpha = initial(final_splatter.alpha), time = 2)
-	else // This will only happen if prev_loc is not even a turf, which is highly unlikely.
-		abstract_move(bumped_atom)
+	else if(istype(bumped_atom, /obj/structure/window))
+		//special window case
+		var/obj/structure/window/window = bumped_atom
+		window.become_bloodied()
+	else
+		bumped_atom.add_blood_DNA(GET_ATOM_BLOOD_DNA(src))
 	qdel(src)

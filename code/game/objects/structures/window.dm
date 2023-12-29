@@ -385,8 +385,8 @@
 	else
 		set_opacity(initial(opacity))
 
-/obj/structure/window/proc/become_bloodied(obj/effect/decal/cleanable/blood/splatter)
-	if(bloodied || !fulltile || !splatter)
+/obj/structure/window/proc/become_bloodied()
+	if(bloodied || !fulltile)
 		return
 	var/obj/effect/decal/cleanable/blood/splatter/over_window/mess = new()
 	mess.forceMove(src)
