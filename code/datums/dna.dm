@@ -642,7 +642,7 @@ GLOBAL_LIST_INIT(features_to_blocks, init_features_to_dna_blocks())
 /mob/living/carbon/set_species(datum/species/species, icon_update = TRUE, pref_load = FALSE)
 	if(QDELETED(src))
 		CRASH("You're trying to change your species post deletion, this is a recipe for madness")
-	if(!has_dna())
+	if(!species || !has_dna())
 		return
 
 	var/datum/species/new_species
