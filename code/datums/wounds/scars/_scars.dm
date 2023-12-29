@@ -87,7 +87,7 @@
 
 /// Used to "load" a persistent scar
 /datum/scar/proc/load(obj/item/bodypart/BP, version, description, specific_location, severity=WOUND_SEVERITY_SEVERE, biology=BIO_FLESH_BONE, char_slot)
-	if(!IS_ORGANIC_LIMB(BP))
+	if(biology != BP.biological_state)
 		qdel(src)
 		return
 

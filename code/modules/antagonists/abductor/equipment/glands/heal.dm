@@ -53,7 +53,7 @@
 		if(!limb)
 			replace_limb(zone)
 			return
-		if((limb.get_damage() >= (limb.max_damage / 2)) || (!IS_ORGANIC_LIMB(limb)))
+		if((limb.get_damage() >= (limb.max_damage / 2)) || IS_ROBOTIC_LIMB(limb))
 			replace_limb(zone, limb)
 			return
 
@@ -208,7 +208,7 @@
 		addtimer(CALLBACK(src, PROC_REF(keep_replacing_blood)), 30)
 
 /obj/item/organ/heart/gland/heal/proc/replace_chest(obj/item/bodypart/chest/chest)
-	if(!IS_ORGANIC_LIMB(chest))
+	if(IS_ROBOTIC_LIMB(chest))
 		owner.visible_message(span_warning("[owner]'s [chest.name] rapidly expels its mechanical components, replacing them with flesh!"), span_userdanger("Your [chest.name] rapidly expels its mechanical components, replacing them with flesh!"))
 		playsound(owner, 'sound/magic/clockwork/anima_fragment_attack.ogg', 50, TRUE)
 		var/list/dirs = GLOB.alldirs.Copy()

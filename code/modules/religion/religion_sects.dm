@@ -163,7 +163,7 @@
 
 	//if we're not targetting a robot part we stop early
 	var/obj/item/bodypart/bodypart = blessed.get_bodypart(chap.zone_selected)
-	if(IS_ORGANIC_LIMB(bodypart))
+	if(!IS_ROBOTIC_LIMB(bodypart))
 		if(!did_we_charge)
 			to_chat(chap, span_warning("[GLOB.deity] scoffs at the idea of healing such fleshy matter!"))
 		else

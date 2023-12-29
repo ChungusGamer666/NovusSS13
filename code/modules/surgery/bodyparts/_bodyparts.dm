@@ -141,9 +141,9 @@
 
 	// Wounds related variables
 	/// The wounds currently afflicting this body part
-	var/list/wounds
+	var/list/datum/wound/wounds
 	/// The scars currently afflicting this body part
-	var/list/scars
+	var/list/datum/scar/scars
 	/// Our current cached wound damage multiplier, multiplies both brute and burn damage
 	var/wound_damage_multiplier = 1
 	/// This number is subtracted from all wound rolls on this bodypart, higher numbers mean more defense, negative means easier to wound
@@ -165,12 +165,9 @@
 	var/obj/item/hand_item/self_grasp/grasped_by
 
 	/// List of obj/item's embedded inside us. Managed by embedded components, do not modify directly
-	var/list/embedded_objects = list()
-
+	var/list/obj/item/embedded_objects = list()
 	/// A list of all the organs we've got stored inside us
 	var/list/obj/item/organ/organs
-	/// A list of all bodypart overlays to draw on this limb if possible
-	var/list/datum/bodypart_overlay/bodypart_overlays
 
 	/// Type of an attack from this limb does. Arms will do punches, Legs for kicks, and head for bites. (TO ADD: tactical chestbumps)
 	var/attack_type = BRUTE
@@ -188,21 +185,16 @@
 	var/unarmed_damage_high = 1
 	/// Damage at which attacks from this bodypart will stun
 	var/unarmed_stun_threshold = 2
-	/// How many pixels this bodypart will offset the top half of the mob, used for abnormally sized torsos and legs
-	var/top_offset = 0
 
 	/// Traits that are given to the holder of the part. If you want an effect that changes this, don't add directly to this. Use the add_bodypart_trait() proc
 	var/list/bodypart_traits
 
-	/// List of feature offset datums which have actually been instantiated, managed automatically
-	var/list/feature_offsets
-
 /obj/item/bodypart/Initialize(mapload)
 	. = ..()
-	RegisterSignal(src, COMSIG_ATOM_RESTYLE, PROC_REF(on_attempt_feature_restyle))
 	if(can_be_disabled)
 		RegisterSignal(src, SIGNAL_ADDTRAIT(TRAIT_PARALYSIS), PROC_REF(on_paralysis_trait_gain))
 		RegisterSignal(src, SIGNAL_REMOVETRAIT(TRAIT_PARALYSIS), PROC_REF(on_paralysis_trait_loss))
+	RegisterSignal(src, COMSIG_ATOM_RESTYLE, PROC_REF(on_attempt_feature_restyle))
 
 	if(!IS_ORGANIC_LIMB(src))
 		grind_results = null
@@ -331,7 +323,7 @@
 			if(WOUND_SEVERITY_CRITICAL)
 				messages += "\t [span_boldwarning("Your [name] is suffering [wound.a_or_from] [lowertext(wound.name)]!!!")]"
 
-	for(var/obj/item/embedded_thing in embedded_objects)
+	for(var/obj/item/embedded_thing as anything in embedded_objects)
 		var/stuck_word = embedded_thing.isEmbedHarmless() ? "stuck" : "embedded"
 		messages += "\t <a href='?src=[REF(examiner)];embedded_object=[REF(embedded_thing)];embedded_limb=[REF(src)]' class='warning'>There is \a [embedded_thing] [stuck_word] in your [name]!</a>"
 
@@ -748,14 +740,14 @@
 		return
 	// We don't need to do anything with projectile embedding, because it will never reach this point
 	RegisterSignal(embed, COMSIG_ITEM_EMBEDDING_UPDATE, PROC_REF(embedded_object_changed))
-	embedded_objects += embed
+	LAZYADD(embedded_objects, embed)
 	refresh_bleed_rate()
 
 // INTERNAL PROC, DO NOT USE
 /// Cleans up any attachment we have to the embedded object, removes it from our list
 /obj/item/bodypart/proc/_unembed_object(obj/item/unembed)
 	UnregisterSignal(unembed, COMSIG_ITEM_EMBEDDING_UPDATE)
-	embedded_objects -= unembed
+	LAZYREMOVE(embedded_objects, unembed)
 	refresh_bleed_rate()
 
 /obj/item/bodypart/proc/embedded_object_changed(obj/item/embedded_source)
@@ -807,7 +799,7 @@
 	if(generic_bleedstacks > 0)
 		cached_bleed_rate += 0.5
 
-	for(var/obj/item/embeddies in embedded_objects)
+	for(var/obj/item/embeddies as anything in embedded_objects)
 		if(!embeddies.isEmbedHarmless())
 			cached_bleed_rate += 0.25
 

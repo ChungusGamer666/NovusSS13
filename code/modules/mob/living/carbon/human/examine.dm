@@ -212,7 +212,7 @@
 		if(body_part.bodypart_disabled)
 			disabled += body_part
 		missing -= body_part.body_zone
-		for(var/obj/item/item in body_part.embedded_objects)
+		for(var/obj/item/item as anything in body_part.embedded_objects)
 			msg += "<B>[t_He] [t_has] [item.get_examine_string(user)] [item.isEmbedHarmless() ?  "stuck to" : "embedded in"] [t_his] [body_part.name]!</B>\n"
 
 		for(var/datum/wound/wound as anything in body_part.wounds)

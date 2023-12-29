@@ -639,25 +639,27 @@ GLOBAL_LIST_INIT(features_to_blocks, init_features_to_dna_blocks())
 			stored_dna.species = mrace //not calling any species update procs since we're a brain, not a monkey/human
 
 
-/mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE)
+/mob/living/carbon/set_species(datum/species/species, icon_update = TRUE, pref_load = FALSE)
 	if(QDELETED(src))
 		CRASH("You're trying to change your species post deletion, this is a recipe for madness")
-	if(mrace && has_dna())
-		var/datum/species/new_race
-		if(ispath(mrace))
-			new_race = new mrace
-		else if(istype(mrace))
-			new_race = mrace
-		else
-			return
-		var/datum/species/old_species = dna.species
-		dna.species = new_race
+	if(!has_dna())
+		return
 
-		if (old_species.properly_gained)
-			old_species.on_species_loss(src, new_race, pref_load)
+	var/datum/species/new_species
+	if(ispath(species))
+		new_species = new species
+	else if(istype(species))
+		new_species = species
+	else
+		return
 
-		dna.species.on_species_gain(src, old_species, pref_load)
-		log_mob_tag("TAG: [tag] SPECIES: [key_name(src)] \[[mrace]\]")
+	var/datum/species/old_species = dna.species
+	if (old_species.properly_gained)
+		old_species.on_species_loss(src, new_species, pref_load)
+	new_species.on_species_gain(src, old_species, pref_load)
+	dna.species = new_species
+
+	log_mob_tag("TAG: [tag] SPECIES: [key_name(src)] \[[new_species.type]\]")
 
 /mob/living/carbon/human/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE)
 	..()
@@ -1154,13 +1156,13 @@ GLOBAL_LIST_INIT(features_to_blocks, init_features_to_dna_blocks())
 	for(var/obj/item/organ/organ as anything in human_holder.organs)
 		if(IS_ROBOTIC_ORGAN(organ))
 			continue
-		if(istype(organ, species.get_mutant_organ_type_for_slot(organ.slot)) || is_type_in_list(organ, species.mutant_organs) || is_type_in_list(organ, species.cosmetic_organs))
+		if(organ.type == species.get_mutant_organ_type_for_slot(organ.slot))
 			continue
 		return TRUE
 	for(var/obj/item/bodypart/bodypart as anything in human_holder.bodyparts)
 		if(IS_ROBOTIC_LIMB(bodypart))
 			continue
-		if(is_type_in_list(bodypart, flatten_list(species.bodypart_overrides)))
+		if(bodypart.type == flatten_list(species.bodypart_overrides))
 			continue
 		return TRUE
 	return FALSE

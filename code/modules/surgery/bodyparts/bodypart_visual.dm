@@ -18,6 +18,15 @@
 	/// Current burn damage state, from 0 (intact) to 3 (max damage)
 	var/burnstate = 0
 
+	/// How many pixels this bodypart will offset the top half of the mob, used for abnormally sized torsos and legs
+	var/top_offset = 0
+
+	/// A list of all bodypart overlays to draw on this limb if possible
+	var/list/datum/bodypart_overlay/bodypart_overlays
+
+	/// List of feature offset datums which have actually been instantiated, managed automatically
+	var/list/datum/worn_feature_offset/feature_offsets
+
 /**
  * Updates a bodypart's external_bodytypes variable, matching it to the organs it has.
  */
@@ -264,6 +273,7 @@
 /obj/item/bodypart/proc/update_part_wound_overlay()
 	if(!owner)
 		return FALSE
+
 	if(HAS_TRAIT(owner, TRAIT_NOBLOOD) || !IS_ORGANIC_LIMB(src))
 		if(bleed_overlay_icon)
 			bleed_overlay_icon = null

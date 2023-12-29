@@ -289,6 +289,12 @@
 		if(ORGAN_SLOT_STOMACH)
 			return mutantstomach
 		else
+			for(var/obj/item/organ/mutant_organ as anything in mutant_organs)
+				if(initial(mutant_organ.slot) == slot)
+					return mutant_organ
+			for(var/obj/item/organ/cosmetic_organ as anything in cosmetic_organs)
+				if(initial(cosmetic_organ.slot) == slot)
+					return cosmetic_organ
 			CRASH("Invalid organ slot [slot]")
 
 /**
@@ -523,13 +529,11 @@
 		C.dna.mutation_index[new_species.inert_mutation] = create_sequence(new_species.inert_mutation)
 		C.dna.default_mutation_genes[new_species.inert_mutation] = C.dna.mutation_index[new_species.inert_mutation]
 
-	if(length(inherent_traits))
-		for(var/X in inherent_traits)
-			REMOVE_TRAIT(C, X, SPECIES_TRAIT)
+	for(var/X in inherent_traits)
+		REMOVE_TRAIT(C, X, SPECIES_TRAIT)
 
-	if(length(inherent_factions))
-		for(var/i in inherent_factions)
-			C.faction -= i
+	for(var/i in inherent_factions)
+		C.faction -= i
 
 	clear_tail_moodlets(C)
 
@@ -2209,7 +2213,7 @@
 
 /// Handles replacing all of the bodyparts with their species version during set_species()
 /datum/species/proc/replace_body(mob/living/carbon/target, datum/species/new_species)
-	new_species ||= target.dna.species //If no new species is provided, assume its src.
+	new_species ||= src //If no new species is provided, assume its src
 
 	var/is_digitigrade = (new_species.digitigrade_customization && (target.dna.features["legs"] == LEGS_DIGITIGRADE)) || (new_species.digitigrade_customization == DIGITIGRADE_FORCED)
 	for(var/obj/item/bodypart/old_part as anything in target.bodyparts)
@@ -2217,31 +2221,32 @@
 			continue
 
 		var/path = new_species.bodypart_overrides?[old_part.body_zone]
-		var/obj/item/bodypart/new_part
-		if(path)
-			new_part = new path()
-			if(is_digitigrade && istype(new_part, /obj/item/bodypart/leg))
-				new_part.bodytype |= BODYTYPE_DIGITIGRADE //THIS IS GOING TO CAUSE BADNESS!!!!
-			//markings my behated
-			var/list/marking_zones = list(new_part.body_zone)
-			if(new_part.aux_zone)
-				marking_zones |= new_part.aux_zone
-			for(var/marking_zone in marking_zones)
-				for(var/marking_index in 1 to MAXIMUM_MARKINGS_PER_LIMB)
-					var/marking_key = "marking_[marking_zone]_[marking_index]"
-					if(!target.dna.features[marking_key] || (target.dna.features[marking_key] == SPRITE_ACCESSORY_NONE))
-						continue
-					var/datum/sprite_accessory/body_markings/markings = GLOB.body_markings_by_zone[marking_zone][target.dna.features[marking_key]]
-					if(!is_valid_rendering_sprite_accessory(markings)) //invalid marking...
-						continue
-					else if(markings.compatible_species && !is_type_in_typecache(new_species, markings.compatible_species))
-						continue
-					var/marking_color_key = marking_key + "_color"
-					var/datum/bodypart_overlay/mutant/marking/marking = new(marking_zone, marking_key, marking_color_key)
-					marking.set_appearance(markings.type)
-					new_part.add_bodypart_overlay(marking)
-			new_part.replace_limb(target, special = TRUE, keep_old_organs = TRUE)
-			new_part.update_limb(is_creating = TRUE)
+		if(!path)
+			continue
+
+		var/obj/item/bodypart/new_part = new path()
+		if(is_digitigrade && istype(new_part, /obj/item/bodypart/leg))
+			new_part.bodytype |= BODYTYPE_DIGITIGRADE //THIS IS GOING TO CAUSE BADNESS!!!!
+		//markings my behated
+		var/list/marking_zones = list(new_part.body_zone)
+		if(new_part.aux_zone)
+			marking_zones |= new_part.aux_zone
+		for(var/marking_zone in marking_zones)
+			for(var/marking_index in 1 to MAXIMUM_MARKINGS_PER_LIMB)
+				var/marking_key = "marking_[marking_zone]_[marking_index]"
+				if(!target.dna.features[marking_key] || (target.dna.features[marking_key] == SPRITE_ACCESSORY_NONE))
+					continue
+				var/datum/sprite_accessory/body_markings/markings = GLOB.body_markings_by_zone[marking_zone][target.dna.features[marking_key]]
+				if(!is_valid_rendering_sprite_accessory(markings)) //invalid marking...
+					continue
+				else if(markings.compatible_species && !is_type_in_typecache(new_species, markings.compatible_species))
+					continue
+				var/marking_color_key = marking_key + "_color"
+				var/datum/bodypart_overlay/mutant/marking/marking = new(marking_zone, marking_key, marking_color_key)
+				marking.set_appearance(markings.type)
+				new_part.add_bodypart_overlay(marking)
+		new_part.replace_limb(target, special = TRUE, keep_old_organs = TRUE)
+		new_part.update_limb(is_creating = TRUE)
 		qdel(old_part)
 
 /**

@@ -251,7 +251,7 @@
 	if(!istype(victim) || possible_tweezers.tool_behaviour != TOOL_HEMOSTAT || user.zone_selected != limb.body_zone)
 		return
 
-	if(weapon != limb.embedded_objects[1]) // just pluck the first one, since we can't easily coordinate with other embedded components affecting this limb who is highest priority
+	if(weapon != LAZYACCESS(limb.embedded_objects, 1)) // just pluck the first one, since we can't easily coordinate with other embedded components affecting this limb who is highest priority
 		return
 
 	if(ishuman(victim)) // check to see if the limb is actually exposed

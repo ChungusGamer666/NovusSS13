@@ -727,9 +727,8 @@
 						visible_message(span_danger("[C]'s spinal cord is obliterated with a sickening crunch!"), ignored_mobs = list(C))
 						C.gain_trauma(/datum/brain_trauma/severe/paralysis/paraplegic)
 					if(5) // limb squish!
-						for(var/i in C.bodyparts)
-							var/obj/item/bodypart/squish_part = i
-							if(IS_ORGANIC_LIMB(squish_part))
+						for(var/obj/item/bodypart/squish_part as anything in C.bodyparts)
+							if(squish_part.biological_state & BIO_BONE)
 								var/type_wound = pick(list(/datum/wound/blunt/critical, /datum/wound/blunt/severe, /datum/wound/blunt/moderate))
 								squish_part.force_wound_upwards(type_wound, wound_source = "crushing by vending machine")
 							else
