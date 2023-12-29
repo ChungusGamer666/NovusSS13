@@ -159,10 +159,13 @@
 	var/area/local_area = get_room_area(src)
 	if(low_power_mode || major_emergency || (local_area?.fire))
 		overlay_appearance = mutable_appearance(overlay_icon, "[base_state]_emergency")
+		overlay_appearance.color = bulb_emergency_colour
 	else if(nightshift_enabled)
 		overlay_appearance = mutable_appearance(overlay_icon, "[base_state]_nightshift")
+		overlay_appearance.color = nightshift_light_color
 	else
 		overlay_appearance = mutable_appearance(overlay_icon, base_state)
+		overlay_appearance.color = bulb_colour
 
 	. += overlay_appearance
 	. += emissive_appearance(overlay_icon, "[base_state]", src, alpha = src.alpha)
